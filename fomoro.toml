@@ -1,0 +1,4 @@
+name = "musicgen2"
+repo = "https://github.com/llSourcell/biaxial-rnn-music-composition.git"
+description = "generating music"
+environment = "theano"
