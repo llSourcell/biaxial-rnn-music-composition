@@ -1,11 +1,11 @@
+#!/usr/bin/env python
 import theano, theano.tensor as T
 import numpy as np
 import theano_lstm
-
 from out_to_in_op import OutputFormToInputFormOp
-
 from theano_lstm import Embedding, LSTM, RNN, StackedCells, Layer, create_optimization_updates, masked_loss, MultiDropout
     
+
 def has_hidden(layer):
     """
     Whether a layer has a trainable
@@ -13,8 +13,10 @@ def has_hidden(layer):
     """
     return hasattr(layer, 'initial_hidden_state')
 
+
 def matrixify(vector, n):
     return T.repeat(T.shape_padleft(vector), n, axis=0)
+
 
 def initial_state(layer, dimensions = None):
     """
@@ -28,6 +30,7 @@ def initial_state(layer, dimensions = None):
     else:
         return matrixify(layer.initial_hidden_state, dimensions) if has_hidden(layer) else None
 
+
 def initial_state_with_taps(layer, dimensions = None):
     """Optionally wrap tensor variable into a dict with taps=[-1]"""
     state = initial_state(layer, dimensions)
@@ -35,6 +38,7 @@ def initial_state_with_taps(layer, dimensions = None):
         return dict(initial=state, taps=[-1])
     else:
         return None
+
 
 class PassthroughLayer(Layer):
     """
@@ -65,6 +69,7 @@ def get_last_layer(result):
     else:
         return result
 
+
 def ensure_list(result):
     if isinstance(result, list):
         return result
@@ -73,7 +78,7 @@ def ensure_list(result):
     
 
 class Model(object):
-    
+
     def __init__(self, t_layer_sizes, p_layer_sizes, dropout=0):
         
         self.t_layer_sizes = t_layer_sizes
@@ -101,19 +106,23 @@ class Model(object):
         self.setup_predict()
         self.setup_slow_walk()
 
+
     @property
     def params(self):
         return self.time_model.params + self.pitch_model.params
     
+
     @params.setter
     def params(self, param_list):
         ntimeparams = len(self.time_model.params)
         self.time_model.params = param_list[:ntimeparams]
         self.pitch_model.params = param_list[ntimeparams:]
 
+
     @property
     def learned_config(self):
         return [self.time_model.params, self.pitch_model.params, [l.initial_hidden_state for mod in (self.time_model, self.pitch_model) for l in mod.layers if has_hidden(l)]]
+
 
     @learned_config.setter
     def learned_config(self, learned_list):
@@ -122,6 +131,7 @@ class Model(object):
         for l, val in zip((l for mod in (self.time_model, self.pitch_model) for l in mod.layers if has_hidden(l)), learned_list[2]):
             l.initial_hidden_state.set_value(val.get_value())
     
+
     def setup_train(self):
 
         # dimensions: (batch, time, notes, input_data) with input_data as in architecture
@@ -131,6 +141,7 @@ class Model(object):
         
         self.epsilon = np.spacing(np.float32(1.0))
 
+
         def step_time(in_data, *other):
             other = list(other)
             split = -len(self.t_layer_sizes) if self.dropout else len(other)
@@ -139,6 +150,7 @@ class Model(object):
             new_states = self.time_model.forward(in_data, prev_hiddens=hiddens, dropout=masks)
             return new_states
         
+
         def step_note(in_data, *other):
             other = list(other)
             split = -len(self.p_layer_sizes) if self.dropout else len(other)
@@ -231,6 +243,7 @@ class Model(object):
             outputs= ensure_list(self.time_thoughts) + ensure_list(self.note_thoughts) + [self.cost],
             allow_input_downcast=True)
     
+
     def _predict_step_note(self, in_data_from_time, *states):
         # States is [ *hiddens, last_note_choice ]
         hiddens = list(states[:-1])
@@ -258,9 +271,9 @@ class Model(object):
         
         return ensure_list(new_states) + [chosen]
 
+
     def setup_predict(self):
         # In prediction mode, note steps are contained in the time steps. So the passing gets a little bit hairy.
-
         self.predict_seed = T.bmatrix()
         self.steps_to_simulate = T.iscalar()
 
@@ -330,6 +343,7 @@ class Model(object):
             updates=updates,
             allow_input_downcast=True)
 
+
     def setup_slow_walk(self):
 
         self.walk_input = theano.shared(np.ones((2,2), dtype='int8'))
@@ -375,6 +389,7 @@ class Model(object):
             updates=updates,
             allow_input_downcast=True)
 
+
     def start_slow_walk(self, seed):
         seed = np.array(seed)
         num_notes = seed.shape[0]
@@ -384,17 +399,3 @@ class Model(object):
         for layer, hidden in zip((l for l in self.time_model.layers if has_hidden(l)),self.walk_hiddens):
             hidden.set_value(np.repeat(np.reshape(layer.initial_hidden_state.get_value(), (1,-1)), num_notes, axis=0))
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-

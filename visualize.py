@@ -1,22 +1,26 @@
+#!/usr/bin/env python
 import numpy as np
 
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+
 def actToColor(memcell, activation):
 	return [0, sigmoid(activation), sigmoid(memcell)]
+
 
 def internalMatrixToImgArray(inmat):
 	return np.array(
 		[[actToColor(m,a) for m,a in zip(row[:len(row)/2],row[len(row)/2:])]
 			for row in inmat])
 
+
 def probAndSuccessToImgArray(prob, succ, idx):
 	return np.array([[[pr[idx]]*3,[sr[idx],0,0]] for pr, sr in zip(prob, succ)])
 
+
 def thoughtsToImageArray(thoughts):
-	
 	spacer = np.zeros((thoughts[0].shape[0], 5, 3))
 
 	sequence = [
@@ -31,8 +35,10 @@ def thoughtsToImageArray(thoughts):
 
 	return (np.concatenate(sequence, axis=1 )*255).astype('uint8')
 
+
 def pastColor(prob, succ):
 	return [prob[0], succ[0], succ[1]*succ[0]]
+
 
 def drawPast(probs, succs):
 	return np.array([
@@ -43,14 +49,15 @@ def drawPast(probs, succs):
 		for note_idx in range(len(probs[0]))
 	])
 
+
 def thoughtsAndPastToStackedArray(thoughts, probs, succs, len_past):
-	
 	vert_spacer = np.zeros((thoughts[0].shape[0], 5, 3))
 
 	past_out = drawPast(probs, succs)
 
 	if len(probs) < len_past:
 		past_out = np.pad(past_out, ((0,0),(len_past-len(probs),0),(0,0)), mode='constant')
+
 
 	def add_cur(ipt):
 		return np.concatenate((
