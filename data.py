@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import itertools
 from midi_to_statematrix import upperBound, lowerBound
 

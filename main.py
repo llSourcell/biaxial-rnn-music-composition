@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import cPickle as pickle
 import gzip
 import numpy
